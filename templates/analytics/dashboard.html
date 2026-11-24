@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <h1>Support Analytics</h1>
+    <a class="button" href="{% url 'analytics:export' %}?start_date={{ start_date }}&end_date={{ end_date }}">Download CSV Report</a>
+</div>
+
+<form method="get" class="filter-form analytics-filter">
+    <label>Start date
+        <input type="date" name="start_date" value="{{ start_date }}">
+    </label>
+    <label>End date
+        <input type="date" name="end_date" value="{{ end_date }}">
+    </label>
+    <button type="submit" class="button">Apply Range</button>
+    <a href="{% url 'analytics:dashboard' %}" class="button button-secondary">Clear</a>
+</form>
+
+{% if is_empty %}
+<section class="empty-state">
+    <h2>No ticket records found</h2>
+    <p>Analytics will appear after tickets are created or match the selected date range.</p>
+</section>
+{% else %}
+<section class="metric-grid">
+    <article class="metric-card"><span>Total tickets</span><strong>{{ total_tickets }}</strong></article>
+    <article class="metric-card"><span>Open tickets</span><strong>{{ open_tickets }}</strong></article>
+    <article class="metric-card"><span>Resolved tickets</span><strong>{{ resolved_tickets }}</strong></article>
+    <article class="metric-card"><span>Critical issues</span><strong>{{ critical_issues }}</strong></article>
+    <article class="metric-card"><span>Average resolution time</span><strong>{{ average_resolution_days }} days</strong></article>
+</section>
+
+<section class="card-grid analytics-grid">
+    <article class="card">
+        <h2>Daily Ticket Trend</h2>
+        <canvas id="dailyTrendChart" height="220"></canvas>
+    </article>
+    <article class="card">
+        <h2>Monthly Ticket Trend</h2>
+        <canvas id="monthlyTrendChart" height="220"></canvas>
+    </article>
+    <article class="card">
+        <h2>Category Distribution</h2>
+        <canvas id="categoryChart" height="220"></canvas>
+    </article>
+    <article class="card">
+        <h2>Priority Distribution</h2>
+        <canvas id="priorityChart" height="220"></canvas>
+    </article>
+</section>
+
+<section class="card-grid analytics-grid">
+    <article class="card">
+        <h2>Executive Performance</h2>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Executive</th><th>Assigned</th><th>Resolved</th><th>Pending</th><th>Resolution Rate</th></tr></thead>
+                <tbody>
+                    {% for executive in executive_performance %}
+                    <tr>
+                        <td>{{ executive.name }}</td><td>{{ executive.assigned }}</td>
+                        <td>{{ executive.resolved }}</td><td>{{ executive.pending }}</td>
+                        <td>{{ executive.resolution_rate }}%</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5">No assigned tickets.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <article class="card">
+        <h2>Executives with Pending Tickets</h2>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Executive</th><th>Pending</th></tr></thead>
+                <tbody>
+                    {% for executive in pending_workload %}
+                    <tr><td>{{ executive.name }}</td><td>{{ executive.pending }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="2">No pending workload.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>
+
+<section class="card-grid analytics-grid">
+    <article class="card">
+        <h2>Frequently Reported Issues</h2>
+        <ol class="issue-list">
+            {% for issue in frequent_issues %}
+            <li><span>{{ issue.title }}</span><strong>{{ issue.count }}</strong></li>
+            {% empty %}
+            <li>No issues recorded.</li>
+            {% endfor %}
+        </ol>
+    </article>
+
+    <article class="card">
+        <h2>Repeated Issues by Client</h2>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Client</th><th>Issue</th><th>Reports</th></tr></thead>
+                <tbody>
+                    {% for pattern in repeated_client_issues %}
+                    <tr>
+                        <td>{{ pattern.client_name }}</td>
+                        <td>{{ pattern.issue_title }}</td>
+                        <td>{{ pattern.count }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3">No repeated client issues in this date range.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <article class="card">
+        <h2>Key Insights</h2>
+        <dl>
+            <dt>Highest complaint category</dt>
+            <dd>{{ highest_complaint_category.name }} ({{ highest_complaint_category.count }})</dd>
+            <dt>Longest resolution priority</dt>
+            <dd>{{ longest_resolution_priority.name }} ({{ longest_resolution_priority.average_days }} days avg)</dd>
+            <dt>Highest pending workload</dt>
+            <dd>{{ executive_highest_pending.name }} ({{ executive_highest_pending.pending }} pending)</dd>
+            <dt>Busiest month</dt>
+            <dd>{{ busiest_month.label }} ({{ busiest_month.count }} tickets)</dd>
+        </dl>
+    </article>
+</section>
+{% endif %}
+
+{{ daily_chart|json_script:"daily-chart-data" }}
+{{ monthly_chart|json_script:"monthly-chart-data" }}
+{{ category_chart|json_script:"category-chart-data" }}
+{{ priority_chart|json_script:"priority-chart-data" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function chartData(id) {
+    const element = document.getElementById(id);
+    return element ? JSON.parse(element.textContent) : {labels: [], values: []};
+}
+
+function renderChart(canvasId, data, type, label, color) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || !data.labels.length) return;
+    new Chart(canvas, {
+        type: type,
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: label,
+                data: data.values,
+                backgroundColor: color,
+                borderColor: color,
+                borderWidth: 2,
+                tension: 0.25,
+                fill: type === 'line'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {legend: {display: type !== 'bar'}}
+        }
+    });
+}
+
+renderChart('dailyTrendChart', chartData('daily-chart-data'), 'line', 'Tickets', '#2563eb');
+renderChart('monthlyTrendChart', chartData('monthly-chart-data'), 'bar', 'Tickets', '#7c3aed');
+renderChart('categoryChart', chartData('category-chart-data'), 'doughnut', 'Tickets', ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed']);
+renderChart('priorityChart', chartData('priority-chart-data'), 'pie', 'Tickets', ['#dc2626', '#f97316', '#eab308', '#22c55e']);
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}ERP Support{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <nav class="site-nav">
+        <a href="{% url 'accounts:dashboard' %}">ERP Support</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'tickets:ticket-list' %}">Tickets</a>
+            {% if user.is_superuser or user.profile.role == 'Admin' %}
+                <a href="{% url 'analytics:dashboard' %}">Analytics</a>
+                <a href="{% url 'imports:dashboard' %}">Imports</a>
+            {% endif %}
+            <form method="post" action="{% url 'accounts:logout' %}" class="nav-action logout-form">
+                {% csrf_token %}
+                <button type="submit" class="nav-link">Logout</button>
+            </form>
+        {% else %}
+            <a href="{% url 'accounts:login' %}" class="nav-action">Login</a>
+            <a href="{% url 'accounts:signup' %}">Sign Up</a>
+        {% endif %}
+    </nav>
+    <main>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

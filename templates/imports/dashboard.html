@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Imports{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <h1>CSV Ticket Import</h1>
+</div>
+
+<section class="form-card">
+    <p>Upload a UTF-8 CSV containing at least these columns:</p>
+    <code>{{ required_columns|join:", " }}</code>
+    <p>Optional columns: <code>Resolution Date</code> (YYYY-MM-DD) and <code>Assigned Support</code> (username).</p>
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="form-field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                {% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+            </div>
+        {% endfor %}
+        <button type="submit" class="button">Upload and Import</button>
+    </form>
+</section>
+
+{% if summary %}
+<section class="card">
+    <h2>Import Summary</h2>
+    <div class="metric-grid import-metrics">
+        <article class="metric-card"><span>Total rows</span><strong>{{ summary.total_rows }}</strong></article>
+        <article class="metric-card"><span>Successful</span><strong>{{ summary.successful_rows }}</strong></article>
+        <article class="metric-card"><span>Failed</span><strong>{{ summary.failed_rows }}</strong></article>
+        <article class="metric-card"><span>Duplicates</span><strong>{{ summary.duplicate_rows }}</strong></article>
+    </div>
+
+    {% if summary.row_results %}
+    <h3>Row Details</h3>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>CSV Row</th><th>Ticket ID</th><th>Result</th><th>Errors</th></tr></thead>
+            <tbody>
+                {% for result in summary.row_results %}
+                <tr>
+                    <td>{{ result.row|default:"Bulk operation" }}</td>
+                    <td>{{ result.ticket_id }}</td>
+                    <td>{% if result.success %}Imported{% else %}Rejected{% endif %}</td>
+                    <td>
+                        {% for error in result.errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="alert alert-success">All valid rows were imported successfully.</p>
+    {% endif %}
+</section>
+{% endif %}
+{% endblock %}

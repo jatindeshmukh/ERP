@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}ERP Support Dashboard{% endblock %}
+
+{% block content %}
+<h1>ERP Support Ticket Management</h1>
+<p>Manage support tickets, review analytics, and import ERP data.</p>
+<div class="card-grid">
+    <section class="card">
+        <h2>Logged-in account</h2>
+        <dl>
+            <dt>Username</dt><dd>{{ user.username }}</dd>
+            <dt>Name</dt><dd>{{ user.get_full_name|default:"Not provided" }}</dd>
+            <dt>Email</dt><dd>{{ user.email|default:"Not provided" }}</dd>
+            <dt>Role</dt><dd>{% if profile %}{{ profile.role }}{% elif user.is_superuser %}Admin{% else %}Client{% endif %}</dd>
+            <dt>Phone</dt><dd>{{ profile.phone|default:"Not provided" }}</dd>
+        </dl>
+    </section>
+    <section class="card">
+        <h2>Quick actions</h2>
+        <a class="button" href="{% url 'tickets:ticket-create' %}">Create Ticket</a>
+        <a class="button button-secondary" href="{% url 'tickets:ticket-list' %}">View Tickets</a>
+    </section>
+</div>
+{% endblock %}

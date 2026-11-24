@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ action }} Ticket{% endblock %}
+
+{% block content %}
+<section class="form-card">
+    <h1>{{ action }} Ticket{% if ticket %}: {{ ticket.ticket_id }}{% endif %}</h1>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <div class="alert alert-error">{{ form.non_field_errors }}</div>
+        {% endif %}
+        {% for field in form %}
+            <div class="form-field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                {% for error in field.errors %}
+                    <span class="field-error">{{ error }}</span>
+                {% endfor %}
+            </div>
+        {% endfor %}
+        <div class="form-actions">
+            <button type="submit" class="button">{{ action }} Ticket</button>
+            <a class="button button-secondary" href="{% if ticket %}{% url 'tickets:ticket-detail' pk=ticket.pk %}{% else %}{% url 'tickets:ticket-list' %}{% endif %}">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ ticket.ticket_id }}{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <h1>{{ ticket.ticket_id }}</h1>
+    <div>
+        {% if can_manage %}
+            <a class="button" href="{% url 'tickets:ticket-update' pk=ticket.pk %}">Edit</a>
+        {% endif %}
+        {% if can_delete %}
+            <form method="post" action="{% url 'tickets:ticket-delete' pk=ticket.pk %}" class="inline-form"
+                  onsubmit="return confirm('Delete this ticket?');">
+                {% csrf_token %}
+                <button type="submit" class="button button-danger">Delete</button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+
+<section class="card">
+    <h2>{{ ticket.issue_title }}</h2>
+    <dl>
+        <dt>Client</dt><dd>{{ ticket.client_name }}</dd>
+        <dt>Category</dt><dd>{{ ticket.category }}</dd>
+        <dt>Priority</dt><dd>{{ ticket.priority }}</dd>
+        <dt>Status</dt><dd>{{ ticket.status }}</dd>
+        <dt>Assigned support</dt><dd>{{ ticket.assigned_support|default:"Unassigned" }}</dd>
+        <dt>Created</dt><dd>{{ ticket.created_date|date:"Y-m-d H:i" }}</dd>
+        <dt>Resolution date</dt><dd>{{ ticket.resolution_date|default:"Not resolved" }}</dd>
+        <dt>Created by</dt><dd>{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</dd>
+    </dl>
+    <h3>Description</h3>
+    <p class="ticket-description">{{ ticket.description|linebreaksbr }}</p>
+</section>
+
+<section class="card">
+    <h2>Status History</h2>
+    <ul class="history-list">
+        {% for history in ticket.status_history.all %}
+        <li>
+            <strong>{{ history.previous_status|default:"New ticket" }} → {{ history.new_status }}</strong>
+            <span>{{ history.changed_at|date:"Y-m-d H:i" }} by {{ history.changed_by|default:"System" }}</span>
+        </li>
+        {% empty %}
+        <li>No status changes recorded.</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}
