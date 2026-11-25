@@ -52,10 +52,14 @@ CSRF_TRUSTED_ORIGINS = [
     for origin in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',')
     if origin.strip()
 ]
-for vercel_url in vercel_urls:
-    vercel_origin = f'https://{vercel_url}'
-    if vercel_origin not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(vercel_origin)
+csrf_hosts = set(vercel_urls)
+csrf_hosts.update(host for host in ALLOWED_HOSTS if host != '*')
+for csrf_host in csrf_hosts:
+    if csrf_host.startswith('.'):
+        csrf_host = f'*.{csrf_host[1:]}'
+    csrf_origin = f'https://{csrf_host}'
+    if csrf_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(csrf_origin)
 
 
 # Application definition
