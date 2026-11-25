@@ -6,3 +6,5 @@ staticfiles/
 .env
 .env.*
 .vercel/
+.vercel
+.env*

@@ -35,16 +35,24 @@ ALLOWED_HOSTS = [
     for host in os.environ.get('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
     if host.strip()
 ]
-vercel_url = os.environ.get('VERCEL_URL')
-if vercel_url and vercel_url not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append(vercel_url)
+vercel_urls = [
+    url
+    for url in (
+        os.environ.get('VERCEL_URL'),
+        os.environ.get('VERCEL_PROJECT_PRODUCTION_URL'),
+    )
+    if url
+]
+for vercel_url in vercel_urls:
+    if vercel_url not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(vercel_url)
 
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',')
     if origin.strip()
 ]
-if vercel_url:
+for vercel_url in vercel_urls:
     vercel_origin = f'https://{vercel_url}'
     if vercel_origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(vercel_origin)
@@ -98,7 +106,11 @@ WSGI_APPLICATION = 'auth_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+DATABASE_URL = (
+    os.environ.get('DATABASE_URL')
+    or os.environ.get('POSTGRES_URL')
+    or os.environ.get('POSTGRES_URL_NON_POOLING')
+)
 if DATABASE_URL:
     import dj_database_url
 
@@ -111,7 +123,8 @@ if DATABASE_URL:
     }
 elif os.environ.get('VERCEL'):
     raise ImproperlyConfigured(
-        'DATABASE_URL must point to a persistent PostgreSQL database on Vercel.'
+        'Configure a persistent PostgreSQL connection in Vercel as DATABASE_URL, '
+        'POSTGRES_URL, or POSTGRES_URL_NON_POOLING.'
     )
 else:
     DATABASES = {
